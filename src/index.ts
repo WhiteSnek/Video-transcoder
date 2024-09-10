@@ -9,6 +9,7 @@ const client = new SQSClient({
     accessKeyId: process.env.ACCESS_KEY_ID!,
     secretAccessKey: process.env.SECRET_ACCESS_KEY!,
   },
+  region: "us-east-1",
 });
 
 const ecsClient = new ECSClient({
@@ -16,6 +17,7 @@ const ecsClient = new ECSClient({
     accessKeyId: process.env.ACCESS_KEY_ID!,
     secretAccessKey: process.env.SECRET_ACCESS_KEY!,
   },
+  region: "us-east-1",
 });
 
 async function init() {

@@ -4,26 +4,36 @@ import type { S3Event } from "aws-lambda";
 import * as dotenv from 'dotenv';
 dotenv.config();
 
+const AWS_ACCESS_KEY = process.env.AWS_ACCESS_KEY!
+const AWS_SECRET_KEY = process.env.AWS_SECRET_KEY!
+const AWS_REGION = process.env.AWS_REGION!
+const QUEUE_URL = process.env.QUEUE_URL!
+const TASK_DEFINITION = process.env.TASK_DEFINITION!
+const CLUSTER = process.env.CLUSTER!
+const INPUT_BUCKET = process.env.INPUT_BUCKET!
+const OUTPUT_BUCKET = process.env.OUTPUT_BUCKET!
+
+
 const client = new SQSClient({
   credentials: {
-    accessKeyId: process.env.ACCESS_KEY_ID!,
-    secretAccessKey: process.env.SECRET_ACCESS_KEY!,
+    accessKeyId: AWS_ACCESS_KEY,
+    secretAccessKey: AWS_SECRET_KEY,
   },
-  region: "us-east-1",
+  region: AWS_REGION,
 });
 
 const ecsClient = new ECSClient({
   credentials: {
-    accessKeyId: process.env.ACCESS_KEY_ID!,
-    secretAccessKey: process.env.SECRET_ACCESS_KEY!,
+    accessKeyId: AWS_ACCESS_KEY,
+    secretAccessKey: AWS_SECRET_KEY,
   },
-  region: "us-east-1",
+  region: AWS_REGION,
 });
 
 async function init() {
   const command = new ReceiveMessageCommand({
     QueueUrl:
-    process.env.QUEUE_URL!,
+    QUEUE_URL,
     MaxNumberOfMessages: 1,
     WaitTimeSeconds: 20,
   });
@@ -45,7 +55,7 @@ async function init() {
         if ("Service" in event && "Event" in event) {
           if (event.Event === "s3:TestEvent"){
             await client.send(new DeleteMessageCommand({
-                QueueUrl: process.env.QUEUE_URL!,
+                QueueUrl: QUEUE_URL,
                 ReceiptHandle: message.ReceiptHandle
               }))
               continue;
@@ -58,23 +68,20 @@ async function init() {
             bucket,
             object: { key },
           } = s3;
+          const decodedKey = decodeURIComponent(key);
           // spin the docker container
           const runTaskCommand = new RunTaskCommand({
-            taskDefinition:
-            process.env.TASK_DEFINITION!,
-            cluster: process.env.CLUSTER!,
+            taskDefinition:TASK_DEFINITION,
+            cluster: CLUSTER,
             launchType: "FARGATE",
             networkConfiguration: {
               awsvpcConfiguration: {
                 assignPublicIp: "ENABLED",
-                securityGroups: ["sg-012ace9f347e8f965"],
+                securityGroups: ["sg-02ebc4eb7f1fc7a4e"],
                 subnets: [
-                  "subnet-07d39fd692b4bb355",
-                  "subnet-07646b478bcd22120",
-                  "subnet-08983cded8668d141",
-                  "subnet-02b1e92372ec9bfb6",
-                  "subnet-0608709ffac542ce4",
-                  "subnet-0448a81fff3335f3a",
+                  "subnet-0cfb7a37a07f81ebc",
+                  "subnet-06694e871a921dbde",
+                  "subnet-07d4cf0d878e84a12",
                 ],
               },
             },
@@ -83,8 +90,12 @@ async function init() {
                 {
                   name: "video-transcoder",
                   environment: [
-                    { name: "BUCKET_NAME", value: bucket.name },
-                    { name: "KEY", value: key },
+                    { name: "INPUT_BUCKET", value: bucket.name },
+                    { name: "OUTPUT_BUCKET", value: OUTPUT_BUCKET },
+                    { name: "AWS_ACCESS_KEY", value: AWS_ACCESS_KEY},
+                    { name: "AWS_SECRET_KEY", value: AWS_SECRET_KEY},
+                    { name: "AWS_REGION", value: AWS_REGION},
+                    { name: "KEY", value: decodedKey },
                   ],
                 },
               ],

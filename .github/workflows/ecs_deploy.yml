@@ -6,7 +6,7 @@ on:
       - main
     paths:
       - "container/**"
-      - ".github/workflows/ecr-deploy.yml"
+      - ".github/workflows/ecs-deploy.yml"
 
 jobs:
   deploy:

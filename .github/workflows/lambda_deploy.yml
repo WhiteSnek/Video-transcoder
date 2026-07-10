@@ -21,27 +21,8 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-
-      - name: Install dependencies
-        run: |
-          if [ -f requirements.txt ]; then
-            pip install -r requirements.txt -t package
-          else
-            mkdir -p package
-          fi
-
-      - name: Copy Lambda source
-        run: |
-          cp -r . package/
-
       - name: Create deployment package
-        run: |
-          cd package
-          zip -r ../lambda.zip .
+        run: zip -r lambda.zip .
 
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4

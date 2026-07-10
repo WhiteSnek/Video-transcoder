@@ -148,7 +148,7 @@ async function init() {
     // Step 6: Delete the original file from S3
     await deleteOriginalFile(BUCKET, KEY);
 
-    console.log("✅ Transcoding and upload complete!");
+    console.log("Transcoding and upload complete!");
   } catch (error) {
     console.error("Error in init:", error);
   }

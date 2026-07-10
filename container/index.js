@@ -17,13 +17,7 @@ const RESOLUTIONS = [
   { name: "1080p", width: 1920, height: 1080, bandwidth: 2800000 },
 ];
 
-const s3Client = new S3Client({
-  region: process.env.AWS_REGION,
-  credentials: {
-    accessKeyId: process.env.AWS_ACCESS_KEY,
-    secretAccessKey: process.env.AWS_SECRET_KEY,
-  },
-});
+const s3Client = new S3Client({});
 
 const BUCKET = process.env.INPUT_BUCKET;
 const KEY = process.env.KEY;

@@ -33,7 +33,7 @@ async function downloadFile(bucket, key, outputPath) {
 
   return new Promise((resolve, reject) => {
     const writeStream = fs.createWriteStream(outputPath);
-    result.Body.on("error", reject); // readable-side errors don't auto-propagate through pipe
+    result.Body.on("error", reject); 
     result.Body.pipe(writeStream).on("error", reject).on("finish", resolve);
   });
 }
@@ -92,7 +92,6 @@ async function deleteOriginalFile(bucket, key) {
   }
 }
 
-
 function getVideoInfo(inputPath) {
   return new Promise((resolve, reject) => {
     ffmpeg.ffprobe(inputPath, (err, data) => {
@@ -106,7 +105,15 @@ function getVideoInfo(inputPath) {
 
 function selectResolutions(sourceHeight) {
   const eligible = RESOLUTIONS.filter((r) => r.height <= sourceHeight);
-  return eligible.length > 0 ? eligible : [RESOLUTIONS[0]];
+  if (eligible.length > 0) return eligible;
+
+  return [
+    {
+      name: `${sourceHeight}p`,
+      height: sourceHeight,
+      bandwidth: RESOLUTIONS[0].bandwidth,
+    },
+  ];
 }
 
 async function transcodeAllResolutions(inputPath, outputBaseDir, resolutions) {
@@ -116,7 +123,7 @@ async function transcodeAllResolutions(inputPath, outputBaseDir, resolutions) {
 
   const filterParts = [`[0:v]split=${resolutions.length}${resolutions.map((_, i) => `[v${i}]`).join("")}`];
   resolutions.forEach((r, i) => {
-    filterParts.push(`[v${i}]scale=w=${r.width}:h=${r.height}:force_original_aspect_ratio=decrease[v${i}out]`);
+    filterParts.push(`[v${i}]scale=-2:${r.height}[v${i}out]`);
   });
 
   const outputOptions = [];
@@ -127,7 +134,7 @@ async function transcodeAllResolutions(inputPath, outputBaseDir, resolutions) {
       `-b:v:${i}`, `${r.bandwidth}`,
       `-maxrate:v:${i}`, `${Math.round(r.bandwidth * 1.07)}`,
       `-bufsize:v:${i}`, `${Math.round(r.bandwidth * 1.5)}`,
-      "-map", "0:a:0?",
+      "-map", "0:a:0?", // optional: don't fail on video with no audio track
       `-c:a:${i}`, "aac",
       `-b:a:${i}`, "128k"
     );
@@ -149,6 +156,7 @@ async function transcodeAllResolutions(inputPath, outputBaseDir, resolutions) {
         "-hls_flags", "independent_segments",
         "-master_pl_name", "master.m3u8",
         "-var_stream_map", varStreamMap,
+        // %v is substituted with each rendition's "name:" from var_stream_map
         "-hls_segment_filename", path.join(outputBaseDir, "%v", "segment_%03d.ts"),
         "-f", "hls",
       ])
@@ -163,13 +171,11 @@ async function transcodeAllResolutions(inputPath, outputBaseDir, resolutions) {
   });
 }
 
-
 async function cleanupLocal(paths) {
   await Promise.all(
     paths.map((p) => fsp.rm(p, { recursive: true, force: true }).catch(() => {}))
   );
 }
-
 
 async function init() {
   const originalFilePath = path.resolve("original-video.mp4");

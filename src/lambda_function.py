@@ -1,6 +1,7 @@
 import json
 import os
 import boto3
+from urllib.parse import unquote_plus
 
 ecs = boto3.client("ecs")
 
@@ -19,7 +20,8 @@ def lambda_handler(event, context):
 
             for s3_record in sqs_body["Records"]:
                 bucket = s3_record["s3"]["bucket"]["name"]
-                key = s3_record["s3"]["object"]["key"]
+                encoded_key = s3_record["s3"]["object"]["key"]
+                key = unquote_plus(encoded_key)
 
                 response = ecs.run_task(
                     cluster=CLUSTER,
